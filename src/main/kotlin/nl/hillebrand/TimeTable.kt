@@ -1,7 +1,7 @@
 package nl.hillebrand
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import java.util.*
+import java.util.ArrayList
 
 data class TimeTable(
         @JsonProperty("outwards")
