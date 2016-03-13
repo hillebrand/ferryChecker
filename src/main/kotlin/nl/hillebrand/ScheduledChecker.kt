@@ -18,8 +18,8 @@ class ScheduledChecker {
 
     val restTemplate = RestTemplate()
 
-//    @Scheduled(fixedRate = 10000)
-    @Scheduled(cron="0 9 * * * *")
+    @Scheduled(fixedRate = 10000)
+//    @Scheduled(cron="0 9 * * * *")
     fun check() {
         val timeTable = restTemplate.getForObject(boatScheduleEndpoint, TimeTable::class.java);
 
