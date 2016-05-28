@@ -21,8 +21,8 @@ class ScheduledChecker {
 //    @Scheduled(fixedRate = 10000)
     @Scheduled(cron="0 9 * * * *")
     fun check() {
+    try {
         val timeTable = restTemplate.getForObject(boatScheduleEndpoint, TimeTable::class.java);
-
 
         val outPassage = Attachment(
                 "Heenreis",
@@ -53,5 +53,8 @@ class ScheduledChecker {
         )
 
         restTemplate.postForLocation(slackEndpoint, message)
+    } catch(e: Exception) {
+        e.printStackTrace();
     }
+}
 }
