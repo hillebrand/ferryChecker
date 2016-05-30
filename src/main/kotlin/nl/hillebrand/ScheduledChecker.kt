@@ -7,7 +7,7 @@ import org.springframework.web.client.RestTemplate
 import java.util.*
 
 @Component
-class ScheduledChecker {
+open class ScheduledChecker {
 
     val boatScheduleEndpoint = "https://boeken.rederij-doeksen.nl/products/departures?booking[departure_port]=H" +
             "&booking[arrival_port]=T&booking[departure_date]=23-07-2016&booking[party_type]=normal" +
@@ -53,9 +53,6 @@ class ScheduledChecker {
                     }
             )
             val text: StringBuilder = StringBuilder()
-            if (retour.isEmpty() || outwards.size >1) {
-                text.append("@hillebrand ");
-            }
 
             text.append("Beschikbaarheid op %td/%tm/%ty".format(Date(), Date(), Date()))
             val message = Message(
