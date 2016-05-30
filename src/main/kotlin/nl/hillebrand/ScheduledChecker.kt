@@ -1,5 +1,6 @@
 package nl.hillebrand
 
+import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestTemplate
@@ -16,45 +17,56 @@ class ScheduledChecker {
 
     val slackEndpoint = "https://hooks.slack.com/services/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"
 
-    val restTemplate = RestTemplate()
+    val logger = LoggerFactory.getLogger(ScheduledChecker::class.java)
 
-//    @Scheduled(fixedRate = 10000)
-    @Scheduled(cron="0 9 * * * *")
+    //    @Scheduled(fixedRate = 10000)
+    @Scheduled(cron = "0 9 * * * *")
     fun check() {
-    try {
-        val timeTable = restTemplate.getForObject(boatScheduleEndpoint, TimeTable::class.java);
+        try {
+            val restTemplate = RestTemplate()
+            val timeTable = restTemplate.getForObject(boatScheduleEndpoint, TimeTable::class.java);
 
-        val outPassage = Attachment(
-                "Heenreis",
-                arrayListOf(Field(
-                        "Tijd",
-                        timeTable.outwards.map{ passage -> passage.departureTime }.joinToString("\n")
-                ), Field(
-                        "Beschikbaar",
-                        timeTable.outwards.map{ passage -> passage.available }.joinToString("\n")
-                )),
-                "danger"
-        )
-        val retourPassage = Attachment(
-                "Terugreis",
-                arrayListOf(Field(
-                        "Tijd",
-                        timeTable.retour.map{ passage -> passage.departureTime }.joinToString("\n")
-                ), Field(
-                        "Beschikbaar",
-                        timeTable.retour.map{ passage -> passage.available }.joinToString("\n")
-                )),
-                "danger"
-        )
+            val outwards: List<Passage> = timeTable.outwards.filter { passage -> passage.available }
+            val outPassage = Attachment(
+                    "Heenreis",
+                    arrayListOf(Field(
+                            "Tijd",
+                            outwards.map { passage -> passage.departureTime }.joinToString("\n")
+                    ), Field(
+                            "Beschikbaar",
+                            outwards.map { passage -> passage.available }.joinToString("\n")
+                    )),
+                    if (outwards.isEmpty() || outwards.size < 2) {
+                        "danger"
+                    } else {
+                        "good"
+                    }
+            )
+            val retour: List<Passage> = timeTable.retour.filter { passage -> passage.available }
+            val retourPassage = Attachment(
+                    "Terugreis",
+                    arrayListOf(Field(
+                            "Tijd",
+                            retour.map { passage -> passage.departureTime }.joinToString("\n")
+                    ), Field(
+                            "Beschikbaar",
+                            retour.map { passage -> passage.available }.joinToString("\n")
+                    )),
+                    if (retour.isEmpty()) {
+                        "danger"
+                    } else {
+                        "good"
+                    }
+            )
 
-        val message = Message(
-                "Beschikbaarheid op %td/%tm/%ty".format(Date(), Date(), Date()),
-                arrayListOf(outPassage, retourPassage)
-        )
+            val message = Message(
+                    "Beschikbaarheid op %td/%tm/%ty".format(Date(), Date(), Date()),
+                    arrayListOf(outPassage, retourPassage)
+            )
 
-        restTemplate.postForLocation(slackEndpoint, message)
-    } catch(e: Exception) {
-        e.printStackTrace();
+            restTemplate.postForLocation(slackEndpoint, message)
+        } catch(e: Exception) {
+            logger.info("Exception while checking timetable", e)
+        }
     }
-}
 }
