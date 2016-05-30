@@ -53,7 +53,6 @@ open class ScheduledChecker {
                     }
             )
             val text: StringBuilder = StringBuilder()
-
             text.append("Beschikbaarheid op %td/%tm/%ty".format(Date(), Date(), Date()))
             val message = Message(
                     text.toString(),
