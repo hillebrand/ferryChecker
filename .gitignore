@@ -1,0 +1,7 @@
+lib
+.gitignore
+.mvn/
+lib/
+slackJson.txt
+src/test/
+target/

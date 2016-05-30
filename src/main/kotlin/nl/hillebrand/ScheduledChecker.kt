@@ -19,7 +19,7 @@ class ScheduledChecker {
 
     val logger = LoggerFactory.getLogger(ScheduledChecker::class.java)
 
-    //    @Scheduled(fixedRate = 10000)
+//        @Scheduled(fixedRate = 10000)
     @Scheduled(cron = "0 9 * * * *")
     fun check() {
         try {
@@ -32,9 +32,6 @@ class ScheduledChecker {
                     arrayListOf(Field(
                             "Tijd",
                             outwards.map { passage -> passage.departureTime }.joinToString("\n")
-                    ), Field(
-                            "Beschikbaar",
-                            outwards.map { passage -> passage.available }.joinToString("\n")
                     )),
                     if (outwards.isEmpty() || outwards.size < 2) {
                         "danger"
@@ -48,9 +45,6 @@ class ScheduledChecker {
                     arrayListOf(Field(
                             "Tijd",
                             retour.map { passage -> passage.departureTime }.joinToString("\n")
-                    ), Field(
-                            "Beschikbaar",
-                            retour.map { passage -> passage.available }.joinToString("\n")
                     )),
                     if (retour.isEmpty()) {
                         "danger"
@@ -58,9 +52,14 @@ class ScheduledChecker {
                         "good"
                     }
             )
+            val text: StringBuilder = StringBuilder()
+            if (retour.isEmpty() || outwards.size >1) {
+                text.append("@hillebrand ");
+            }
 
+            text.append("Beschikbaarheid op %td/%tm/%ty".format(Date(), Date(), Date()))
             val message = Message(
-                    "Beschikbaarheid op %td/%tm/%ty".format(Date(), Date(), Date()),
+                    text.toString(),
                     arrayListOf(outPassage, retourPassage)
             )
 
