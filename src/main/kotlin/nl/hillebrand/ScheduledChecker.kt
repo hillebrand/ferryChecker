@@ -27,18 +27,30 @@ open class ScheduledChecker {
 
     @Scheduled(cron = "0 9 * * * *")
     fun checkRegular() {
-        check(true, "Beschikbaarheid op %td/%tm/%ty %tH:%tM".format(Date(), Date(), Date(), Date(), Date()), "#ferrychecker")
+        val sdf = SimpleDateFormat("dd MMM HH:mm")
+        sdf.timeZone = TimeZone.getTimeZone("Europe/Amsterdam")
+        val messageText = "Beschikbaarheid op " + sdf.format(Date())
+        check(true, messageText, "#ferrychecker")
     }
 
-    fun check(allwaysSendMessage: Boolean, messageText: String, channel: String) {
+    fun check(sendMessage: Boolean, messageText: String, channel: String) {
         try {
+            var doSend = sendMessage
             val restTemplate = RestTemplate()
             val timeTable = restTemplate.getForObject(boatScheduleEndpoint, TimeTable::class.java);
 
-            val outwards: List<Passage> = timeTable.outwards.filter { passage -> passage.available }.filter { hasDesiredTime(it) }
-            val retour: List<Passage> = timeTable.retour.filter { passage -> passage.available }.filter { hasDesiredTime(it) }
+            val outwards: List<Passage>
+            val retour: List<Passage>
+            if (sendMessage) {
+                outwards = timeTable.outwards.filter { passage -> passage.available }
+                retour = timeTable.retour.filter { passage -> passage.available }
+            } else {
+                outwards = timeTable.outwards.filter { passage -> passage.available }.filter { hasDesiredTime(it) }
+                retour = timeTable.retour.filter { passage -> passage.available }.filter { hasDesiredTime(it) }
+                doSend = (!outwards.isEmpty() || !retour.isEmpty())
+            }
 
-            if (!outwards.isEmpty() || !retour.isEmpty() || allwaysSendMessage) {
+            if (doSend) {
                 sendSlackMessage(outwards, retour, messageText, channel)
             }
         } catch(e: Exception) {
@@ -59,7 +71,7 @@ open class ScheduledChecker {
                         "Tijd",
                         outwards.map { passage -> passage.departureTime }.joinToString("\n")
                 )),
-                if (outwards.isEmpty()) {
+                if (outwards.isEmpty() || outwards.size < 2) {
                     "danger"
                 } else {
                     "good"
