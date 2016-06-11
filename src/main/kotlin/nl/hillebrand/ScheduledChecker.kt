@@ -48,7 +48,7 @@ open class ScheduledChecker {
 
     private fun hasDesiredTime(passage: Passage): Boolean {
         val date = SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse(passage.departureTime)
-        return date.hours > 8 && date.hours < 17
+        return date.hours > 7 && date.hours < 17
     }
 
     private fun sendSlackMessage(outwards: List<Passage>, retour: List<Passage>, text: String, channel: String) {
