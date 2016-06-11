@@ -1,13 +1,14 @@
 package nl.hillebrand
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import java.util.ArrayList
 
 data class Message(
         @JsonProperty("text")
         val text: String,
         @JsonProperty("attachments")
-        val attachments: List<Attachment>)
+        val attachments: List<Attachment>,
+        @JsonProperty("channel")
+        val channel: String)
 
 data class Attachment(
         @JsonProperty("text")
@@ -23,4 +24,4 @@ data class Field(
         @JsonProperty("value")
         val value: String,
         @JsonProperty("short")
-        val isShort: Boolean = true )
+        val isShort: Boolean = true)

@@ -4,6 +4,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestTemplate
+import java.text.SimpleDateFormat
 import java.util.*
 
 @Component
@@ -19,49 +20,65 @@ open class ScheduledChecker {
 
     val logger = LoggerFactory.getLogger(ScheduledChecker::class.java)
 
-//        @Scheduled(fixedRate = 10000)
+    @Scheduled(fixedRate = 600000)
+    fun checkFrequent() {
+        check(false, "Overtocht beschikbaar", "#ferrychecker2")
+    }
+
     @Scheduled(cron = "0 9 * * * *")
-    fun check() {
+    fun checkRegular() {
+        check(true, "Beschikbaarheid op %td/%tm/%ty %tH:%tM".format(Date(), Date(), Date(), Date(), Date()), "#ferrychecker")
+    }
+
+    fun check(allwaysSendMessage: Boolean, messageText: String, channel: String) {
         try {
             val restTemplate = RestTemplate()
             val timeTable = restTemplate.getForObject(boatScheduleEndpoint, TimeTable::class.java);
 
-            val outwards: List<Passage> = timeTable.outwards.filter { passage -> passage.available }
-            val outPassage = Attachment(
-                    "Heenreis",
-                    arrayListOf(Field(
-                            "Tijd",
-                            outwards.map { passage -> passage.departureTime }.joinToString("\n")
-                    )),
-                    if (outwards.isEmpty() || outwards.size < 2) {
-                        "danger"
-                    } else {
-                        "good"
-                    }
-            )
-            val retour: List<Passage> = timeTable.retour.filter { passage -> passage.available }
-            val retourPassage = Attachment(
-                    "Terugreis",
-                    arrayListOf(Field(
-                            "Tijd",
-                            retour.map { passage -> passage.departureTime }.joinToString("\n")
-                    )),
-                    if (retour.isEmpty()) {
-                        "danger"
-                    } else {
-                        "good"
-                    }
-            )
-            val text: StringBuilder = StringBuilder()
-            text.append("Beschikbaarheid op %td/%tm/%ty".format(Date(), Date(), Date()))
-            val message = Message(
-                    text.toString(),
-                    arrayListOf(outPassage, retourPassage)
-            )
+            val outwards: List<Passage> = timeTable.outwards.filter { passage -> passage.available }.filter { hasDesiredTime(it) }
+            val retour: List<Passage> = timeTable.retour.filter { passage -> passage.available }.filter { hasDesiredTime(it) }
 
-            restTemplate.postForLocation(slackEndpoint, message)
+            if (!outwards.isEmpty() || !retour.isEmpty() || allwaysSendMessage) {
+                sendSlackMessage(outwards, retour, messageText, channel)
+            }
         } catch(e: Exception) {
             logger.info("Exception while checking timetable", e)
         }
+    }
+
+    private fun hasDesiredTime(passage: Passage): Boolean {
+        val date = SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse(passage.departureTime)
+        return date.hours > 8 && date.hours < 17
+    }
+
+    private fun sendSlackMessage(outwards: List<Passage>, retour: List<Passage>, text: String, channel: String) {
+        val restTemplate = RestTemplate()
+        val outPassage = Attachment(
+                "Heenreis",
+                arrayListOf(Field(
+                        "Tijd",
+                        outwards.map { passage -> passage.departureTime }.joinToString("\n")
+                )),
+                if (outwards.isEmpty()) {
+                    "danger"
+                } else {
+                    "good"
+                }
+        )
+        val retourPassage = Attachment(
+                "Terugreis",
+                arrayListOf(Field(
+                        "Tijd",
+                        retour.map { passage -> passage.departureTime }.joinToString("\n")
+                )),
+                if (retour.isEmpty()) {
+                    "danger"
+                } else {
+                    "good"
+                }
+        )
+        val message = Message(text, arrayListOf(outPassage, retourPassage), channel)
+
+        restTemplate.postForLocation(slackEndpoint, message)
     }
 }
