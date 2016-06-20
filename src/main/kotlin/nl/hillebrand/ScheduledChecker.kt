@@ -60,7 +60,7 @@ open class ScheduledChecker {
 
     private fun hasDesiredTime(passage: Passage): Boolean {
         val date = SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse(passage.departureTime)
-        return date.hours > 8 && date.hours < 18
+        return date.hours > 8 && date.hours < 16
     }
 
     private fun sendSlackMessage(outwards: List<Passage>, retour: List<Passage>, text: String, channel: String) {
@@ -71,7 +71,7 @@ open class ScheduledChecker {
                         "Tijd",
                         outwards.map { passage -> passage.departureTime }.joinToString("\n")
                 )),
-                if (outwards.isEmpty() || outwards.size < 2) {
+                if (outwards.filter { hasDesiredTime(it) }.isEmpty()) {
                     "danger"
                 } else {
                     "good"
@@ -83,7 +83,7 @@ open class ScheduledChecker {
                         "Tijd",
                         retour.map { passage -> passage.departureTime }.joinToString("\n")
                 )),
-                if (retour.isEmpty()) {
+                if (retour.filter { hasDesiredTime(it) }.isEmpty()) {
                     "danger"
                 } else {
                     "good"
