@@ -20,6 +20,11 @@ open class ScheduledChecker {
 
     val logger = LoggerFactory.getLogger(ScheduledChecker::class.java)
 
+    val outwardFromHours = 9
+    val outwardTillHours = 14
+    val retourFromHours = 12
+    val retourTillHours = 15
+
     @Scheduled(fixedRate = 600000)
     fun checkFrequent() {
         check(false, "Overtocht beschikbaar", "#ferrychecker2")
@@ -45,8 +50,12 @@ open class ScheduledChecker {
                 outwards = timeTable.outwards.filter { passage -> passage.available }
                 retour = timeTable.retour.filter { passage -> passage.available }
             } else {
-                outwards = timeTable.outwards.filter { passage -> passage.available }.filter { hasDesiredTime(it) }
-                retour = timeTable.retour.filter { passage -> passage.available }.filter { hasDesiredTime(it) }
+                outwards = timeTable.outwards
+                        .filter { passage -> passage.available }
+                        .filter { hasDesiredTime(it, outwardFromHours, outwardTillHours) }
+                retour = timeTable.retour
+                        .filter { passage -> passage.available }
+                        .filter { hasDesiredTime(it, retourFromHours, retourTillHours)}
                 doSend = (!outwards.isEmpty() || !retour.isEmpty())
             }
 
@@ -58,9 +67,9 @@ open class ScheduledChecker {
         }
     }
 
-    private fun hasDesiredTime(passage: Passage): Boolean {
+    private fun hasDesiredTime(passage: Passage, from: Int, to: Int): Boolean {
         val date = SimpleDateFormat("yyyy-MM-dd hh:mm:ss").parse(passage.departureTime)
-        return date.hours > 8 && date.hours < 16
+        return date.hours >= from && date.hours <= to
     }
 
     private fun sendSlackMessage(outwards: List<Passage>, retour: List<Passage>, text: String, channel: String) {
@@ -71,7 +80,7 @@ open class ScheduledChecker {
                         "Tijd",
                         outwards.map { passage -> passage.departureTime }.joinToString("\n")
                 )),
-                if (outwards.filter { hasDesiredTime(it) }.isEmpty()) {
+                if (outwards.filter { hasDesiredTime(it, outwardFromHours, outwardTillHours) }.isEmpty()) {
                     "danger"
                 } else {
                     "good"
@@ -83,7 +92,7 @@ open class ScheduledChecker {
                         "Tijd",
                         retour.map { passage -> passage.departureTime }.joinToString("\n")
                 )),
-                if (retour.filter { hasDesiredTime(it) }.isEmpty()) {
+                if (retour.filter { hasDesiredTime(it, retourFromHours, retourTillHours) }.isEmpty()) {
                     "danger"
                 } else {
                     "good"
